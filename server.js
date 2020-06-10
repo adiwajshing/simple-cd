@@ -37,12 +37,12 @@ router.post('/', function(req, res) {
 
 app.use('/docker-hook', router)
 
-module.exports = async function (port, configfile) {
-    
+module.exports = async function (port, configfile, startContainers) {
     wrapper = new Wrapper (configfile)
-    logger.log (`loading all images...`)
-    await wrapper.runAll ()
-    
+    if (startContainers) {
+        logger.log (`loading all images...`)
+        await wrapper.runAll ()
+    }
     app.listen(port, "0.0.0.0")
     logger.log (`starting server at: 0.0.0.0:${port}`)
     return app

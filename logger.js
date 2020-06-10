@@ -1,4 +1,4 @@
 module.exports = {
-    log: function (txt) { console.log (`[SIMPLECD] ${txt}`) },
-    error: function (txt) { console.error (`[SIMPLECD] ${txt}`) }
+    log: function (txt) { console.log (`[${ new Date().toLocaleString() }][SIMPLECD] ${txt}`) },
+    error: function (txt) { console.error (`[${ new Date().toLocaleString() }][SIMPLECD] ${txt}`) }
 }
