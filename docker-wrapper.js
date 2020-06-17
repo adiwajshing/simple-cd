@@ -25,7 +25,7 @@ module.exports = class {
         return exec ("docker --help")
     }
     async runAll () {
-        const tasks = Object.keys (this.data).map (image => this.start(image))
+        const tasks = Object.keys (this.data).map (image => this.run(image))
         return Promise.all (tasks)
     }
     load () {
@@ -69,8 +69,8 @@ module.exports = class {
             throw "REPO NOT PRESENT"
         }
         if (this.queue[repo]) {
-            logger.log (`build for ${repo} queued...`)
-            return this.queue[repo].finally (() => this.start (repo))
+            logger.log (`build for ${repo} queued...`) 
+            return this.queue[repo].finally (() => this.run (repo))
         }
         const info = this.data [repo]
         let task 
@@ -82,6 +82,7 @@ module.exports = class {
                 .then (arr => Promise.all(arr))
                 .then (resolve)
                 .catch (reject)
+                .finally (() => delete this.queue[repo])
             })
         } 
         this.queue [repo] = task
