@@ -19,9 +19,7 @@ if (argv.help) {
     return
 }
 if (argv._.includes('execute')) {
-    if (!fs.existsSync(defaults.directory)) {
-        fs.mkdirSync (defaults.directory)
-    }
+    defaults.create_default_directory ()
     
     exec (`nohup node ${__dirname}/server.js ${process.argv.slice(2).join(' ')} > ${defaults.log_file} 2>&1 &`)
     .then (() => {

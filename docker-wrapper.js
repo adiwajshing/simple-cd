@@ -6,14 +6,14 @@ module.exports = class {
     /**
      * @typedef ContainerMetadata
      * @property {string} command
+     * @property {string} [creds]
      * @property {string} args -- custom arguments to add (only valid when `command` is null)
      */
     /**
-     * 
-     * @param {string} file 
+     * @param {string} directory 
      */
-    constructor (file) {
-        this.file = file
+    constructor (directory) {
+        this.directory = directory
         /** @type {Object.<string, Promise<void>>} */
         this.queue = {}
         /** @type {Object.<string, string | ContainerMetadata[]>} */
@@ -28,76 +28,90 @@ module.exports = class {
         const tasks = Object.keys (this.data).map (image => this.run(image))
         return Promise.all (tasks)
     }
+    configFilePath () {
+        return `${this.directory}config.json`
+    }
     load () {
         try {
-            const data = fs.readFileSync (this.file)
+            const data = fs.readFileSync (this.configFilePath())
             this.data = JSON.parse (data)
-            logger.log (`loaded data from ${this.file}`)
+            logger.log (`loaded data from ${this.configFilePath()}`)
         } catch (error) {
-            logger.log (`failed to load data from ${this.file}: ${error}`)
+            logger.log (`failed to load data from ${this.configFilePath()}: ${error}`)
         }
     }
     save () {
-        fs.writeFileSync (this.file, JSON.stringify(this.data, null, '\t'))
+        fs.writeFileSync (this.configFilePath(), JSON.stringify(this.data, null, '\t'))
     }
     add (repo, args, command) {
-        const meta = {args: args, command: command}
+        const meta = {args, command}
         const data = this.data[repo]
-        if (typeof data === 'string') { throw 'cannot add more containers to a custom script' }
+        
+        if (typeof data === 'string') throw 'cannot add more containers to a custom script'
+        
         this.data [repo] = [ ...(data || []), meta ]
     }
     addScript (repo, script) {
         const data = this.data[repo]
-        if (typeof data === 'object') { throw 'cannot add a custom script to default containers' }
+        
+        if (typeof data === 'object') throw 'cannot add a custom script to default containers'
+        
         this.data [repo] = script
     }
     delete (repo) {
-        if (this.data[repo]) {
-            delete this.data[repo]
-        } else {
-            throw `could not find repo: '${repo}'`
-        }
+        if (this.data[repo]) delete this.data[repo]
+        else throw `could not find repo: '${repo}'`
     }
-    hasRepository (repo) {
-        return this.data[repo] ? true : false
-    }
-    containerName (repo, index) {
-        return repo.replace("/","-").replace(':','-') + "-" + index
-    }
+    hasRepository (repo) { return this.data[repo] ? true : false }
+    containerName (repo, index) { return repo.replace("/","-").replace(':','-') + "-" + index }
+    
     async run (repo) {
-        if (!this.data[repo]) {
-            throw "REPO NOT PRESENT"
-        }
+        if (!this.data[repo]) throw "REPO NOT PRESENT"
+        
         if (this.queue[repo]) {
-            logger.log (`build for ${repo} queued...`) 
-            return this.queue[repo].finally (() => this.run (repo))
+            logger.log (`build for ${repo} queued...`)
+            try {
+                await this.queue[repo]
+            } catch { }
         }
+
         const info = this.data [repo]
+        
+        const isGithub = repo.startsWith('github:')
+
         let task 
         if (Array.isArray (info)) {
-            task = new Promise ((resolve, reject) => {
-                this.pullContainer (repo)
-                .then (() => this.killContainers (repo))
-                .then (() => info.map ((meta, i) => this.runContainer (repo, this.containerName(repo, i), meta.args, meta.command)))
-                .then (arr => Promise.all(arr))
-                .then (resolve)
-                .catch (reject)
-                .finally (() => delete this.queue[repo])
+            task = new Promise (async (resolve, reject) => {
+                try {
+                    await this.pullContainer (repo, isGithub)
+                    await this.killContainers (repo, isGithub)
+                    
+                    const tasks = info.map ((meta, i) => this.runContainer (repo, this.containerName(repo, i), meta.args, meta.command))
+                    await Promise.all(tasks)
+                    resolve ()
+                } catch (err) { reject (err) }
+                delete this.queue[repo]
             })
         } 
         this.queue [repo] = task
         return task
     }
-    async pullContainer (repo) {
+    async pullContainer (repo, isGithub) {
         try {
-            await exec (`docker pull ${repo}`)
+            if (isGithub) {
+                repo = repo.replace ('github:', '')
+                await exec (`docker build https://github.com/${repo}.git#master -t ${repo}`)
+            }
+            else await exec (`docker pull ${repo}`)
         } catch (error) {
             logger.log (`failed to pull '${repo}'`)
             throw error
         }
     }
     async killContainers (repo) {
-        if (!this.hasRepository(repo)) { throw `repo '${repo}' not found` }
+        if (!this.hasRepository(repo)) throw `repo '${repo}' not found`
+        
+        repo = repo.replace ('github:', '')
 
         const name = this.containerName (repo, '')
         const q = `$(docker ps -a -q --filter name=${name}*)`
@@ -113,6 +127,7 @@ module.exports = class {
         }
     }
     async runContainer (repo, container, args="", command) {
+        repo = repo.replace ('github:', '')
         args = args || ""
         try {
             await exec (`docker run -d ${args} --name ${container} ${repo} ${command}`)

@@ -60,9 +60,8 @@ module.exports = {
             }, 500)
             return 'exited'
         }
-        if (args.image && !args.image.includes(':')) {
-            args.image = args.image + ':latest'
-        }
+        if (args.image && !args.image.includes(':')) args.image = (args.image + ':latest').toLowerCase()
+        
         if (args.help) {
             return
         }
