@@ -3,7 +3,7 @@ const yargs = require ('yargs')
 module.exports = {
     parse: function (argv) {
         return this.parseRunning (argv)
-        .command ('execute', 'start the server to listen for webhooks', yargs => {
+        .command ('start', 'start the server to listen for webhooks', yargs => {
             yargs
             .option('port', {description: 'the port to start the server on', alias: 'p', type: 'number'})
             .option('start-containers', {description: 'should all configured docker containers be started on boot', alias: 's', type: 'boolean', default: true})
@@ -18,7 +18,8 @@ module.exports = {
             .exitProcess (false)
 
         return yargs (argv)
-        .command ('close', 'close the app')
+        .command ('close', 'close the server')
+        .command ('restart', 'restart the server')
         .command ('add [image]', 'add a new image to employ CD on', yargs => {
             imageCommand (yargs)
             .option('args', {describe: 'the arguments to run the container with, eg. --mount, -v etc.', type: 'string', default: ''})

@@ -77,7 +77,7 @@ async function onReceiveCommand (body, mainServer, daemonServer) {
 async function startServer (port, startContainers) {
     port = port || defaults.hook_port
     wrapper = new Wrapper (defaults.directory)
-    
+
     if (startContainers) {
         logger.log (`loading all images...`)
         await wrapper.runAll ()
@@ -107,7 +107,7 @@ async function startServer (port, startContainers) {
 module.exports = startServer
 
 const argv = cli.parse (process.argv)
-if (argv._.includes('execute') && !argv.help) {
+if (argv._.includes('start') && !argv.help) {
     defaults.create_default_directory ()
     startServer(argv.port || 8090, argv["start-container"])
 }
