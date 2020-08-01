@@ -100,7 +100,7 @@ module.exports = class {
         try {
             if (isGithub) {
                 repo = repo.replace ('github:', '')
-                await exec (`docker build https://github.com/${repo}.git#master -t ${repo}`)
+                await exec (`docker build https://github.com/${repo.toLowerCase()}.git#master -t ${repo}`)
             }
             else await exec (`docker pull ${repo}`)
         } catch (error) {
