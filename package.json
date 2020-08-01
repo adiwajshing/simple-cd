@@ -1,6 +1,6 @@
 {
   "name": "simple-cd",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Simple continuous deplyment with Docker",
   "main": "index.js",
   "scripts": {
