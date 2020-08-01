@@ -66,7 +66,7 @@ module.exports = class {
     containerName (repo, index) { return repo.replace("/","-").replace(':','-') + "-" + index }
     
     async run (repo) {
-        if (!this.data[repo]) throw "REPO NOT PRESENT"
+        if (!this.data[repo]) throw new Error (`Repo: ${repo} not present`)
         
         if (this.queue[repo]) {
             logger.log (`build for ${repo} queued...`)
