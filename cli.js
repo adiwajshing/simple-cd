@@ -61,7 +61,7 @@ module.exports = {
             }, 500)
             return 'exited'
         }
-        const imageName = (args.image && !args.image.includes(':')) ? (args.image + ':latest').toLowerCase() : ''
+        const imageName = ((args.image && !args.image.includes(':')) ? (args.image + ':latest') : args.image)?.toLowerCase()
         if (args.help) return
         
         switch (args._[0]) {
