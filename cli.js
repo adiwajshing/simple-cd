@@ -61,37 +61,35 @@ module.exports = {
             }, 500)
             return 'exited'
         }
-        if (args.image && !args.image.includes(':')) args.image = (args.image + ':latest').toLowerCase()
+        const imageName = args.image && !args.image.includes(':') ? (args.image + ':latest').toLowerCase() : ''
+        if (args.help) return
         
-        if (args.help) {
-            return
-        }
         switch (args._[0]) {
             case 'add':
                 if (args.script) {
-                    wrapper.addScript (args.image, args.script)
+                    wrapper.addScript (imageName, args.script)
                 } else {
-                    wrapper.add (args.image, args.args, args.command)
+                    wrapper.add (imageName, args.args, args.command)
                 }
                 wrapper.save ()
-                return `added image: ${args.image}`
+                return `added image: ${imageName}`
             case 'delete':
-                wrapper.killContainers (args.image)
-                wrapper.delete (args.image)
+                wrapper.killContainers (imageName)
+                wrapper.delete (imageName)
                 wrapper.save ()
-                return `stopped all containers of ${args.image} and deleted configuration`
+                return `stopped all containers of ${imageName} and deleted configuration`
             case 'stop':
-                await wrapper.killContainers (args.image)
-                return `stopped containers of ${args.image}`
+                await wrapper.killContainers (imageName)
+                return `stopped containers of ${imageName}`
             case 'run':
-                await wrapper.run (args.image)
-                return `started containers of ${args.image}`
+                await wrapper.run (imageName)
+                return `started containers of ${imageName}`
             case 'view':
-                const data = wrapper.data[args.image]
+                const data = wrapper.data[imageName]
                 if (!data) {
                     return "\n" + Object.keys (wrapper.data).map ((key, i) => `${i+1}. ${key}`).join ('\n')
                 }
-                return args.image + ': ' + JSON.stringify(data)
+                return imageName + ': ' + JSON.stringify(data)
             default:
                 throw `unknown command '${args._[0]}', use '-h' to see available commands`
         }
