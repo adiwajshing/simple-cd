@@ -1,4 +1,5 @@
 const yargs = require ('yargs')
+const DockerWrapper = require ('./docker-wrapper')
 
 module.exports = {
     parse: function (argv) {
@@ -23,6 +24,7 @@ module.exports = {
         .command ('add [image]', 'add a new image to employ CD on', yargs => {
             imageCommand (yargs)
             .option('args', {describe: 'the arguments to run the container with, eg. --mount, -v etc.', type: 'string', default: ''})
+            .option('build-args', {describe: 'the arguments to build the container with, eg. TOKEN=X, SOME=THING', type: 'string', default: ''})
             .option('command', {describe: 'the command to run on the container', type: 'string', default: ''})
             .option('script', {describe: 'the custom script you may want to execute instead of the standard stop-run', type: 'string'})
         })
@@ -66,11 +68,10 @@ module.exports = {
         
         switch (args._[0]) {
             case 'add':
-                if (args.script) {
-                    wrapper.addScript (imageName, args.script)
-                } else {
-                    wrapper.add (imageName, args.args, args.command)
-                }
+                
+                if (args.script) wrapper.addScript (imageName, args.script)
+                else wrapper.add (imageName, args.args, args['build-args'], args.command)
+                
                 wrapper.save ()
                 return `added image: ${imageName}`
             case 'delete':
@@ -87,7 +88,7 @@ module.exports = {
             case 'view':
                 const data = wrapper.data[imageName]
                 if (!data) {
-                    return "\n" + Object.keys (wrapper.data).map ((key, i) => `${i+1}. ${key}`).join ('\n')
+                    return "available images:\n" + Object.keys (wrapper.data).map ((key, i) => `${i+1}. ${key}`).join ('\n')
                 }
                 return imageName + ': ' + JSON.stringify(data)
             default:

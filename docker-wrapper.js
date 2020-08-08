@@ -7,7 +7,8 @@ module.exports = class {
      * @typedef ContainerMetadata
      * @property {string} command
      * @property {string} [creds]
-     * @property {string} args -- custom arguments to add (only valid when `command` is null)
+     * @property {string} [args] -- custom arguments to add (only valid when `command` is null)
+     * @property {string} [buildArgs] -- custom arguments to build with (only valid for git repos)
      */
     /**
      * @param {string} directory 
@@ -43,8 +44,8 @@ module.exports = class {
     save () {
         fs.writeFileSync (this.configFilePath(), JSON.stringify(this.data, null, '\t'))
     }
-    add (repo, args, command) {
-        const meta = {args, command}
+    add (repo, args, buildArgs, command) {
+        const meta = {args, command, buildArgs}
         const data = this.data[repo]
         
         if (typeof data === 'string') throw 'cannot add more containers to a custom script'
@@ -76,14 +77,13 @@ module.exports = class {
         }
 
         const info = this.data [repo]
-        
         const isGithub = repo.startsWith('github:')
 
         let task 
         if (Array.isArray (info)) {
             task = new Promise (async (resolve, reject) => {
                 try {
-                    await this.pullContainer (repo, isGithub)
+                    await this.pullContainer (repo, isGithub, info[0].buildArgs)
                     await this.killContainers (repo, isGithub)
                     
                     const tasks = info.map ((meta, i) => this.runContainer (repo, this.containerName(repo, i), meta.args, meta.command))
@@ -96,11 +96,12 @@ module.exports = class {
         this.queue [repo] = task
         return task
     }
-    async pullContainer (repo, isGithub) {
+    async pullContainer (repo, isGithub, buildArgs) {
         try {
             if (isGithub) {
                 repo = repo.replace ('github:', '')
-                await exec (`docker build https://github.com/${repo.toLowerCase()}.git#master -t ${repo}`)
+                buildArgs = buildArgs ? `--build-arg ${buildArgs}` : ''
+                await exec (`docker build ${buildArgs} https://github.com/${repo.toLowerCase()}.git#master -t ${repo}`)
             }
             else await exec (`docker pull ${repo}`)
         } catch (error) {
